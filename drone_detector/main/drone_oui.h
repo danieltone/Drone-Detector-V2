@@ -47,6 +47,7 @@ static const drone_oui_entry_t DRONE_OUI_TABLE[] = {
     { {0x60, 0x60, 0x1F}, "DJI",    "✓ IEEE – all current DJI models"        },
     { {0x34, 0xD2, 0x62}, "DJI",    "✓ IEEE – Mavic/Mini/Air/FPV/Avata"      },
     { {0x48, 0x1C, 0xB9}, "DJI",    "* widely reported in drone-detect tools" },
+    { {0x1C, 0x2A, 0xD9}, "DJI",    "✓ IEEE – Neo/Mini4Pro/Air3/Avata2 (2024+)" },
 
     /* ── Parrot SA  (France) ─────────────────────────────────────────────*/
     /* Confirmed via macvendors.com API                                     */
@@ -106,6 +107,8 @@ static const ssid_fp_t SSID_FINGERPRINTS[] = {
     { "DJI FPV",     "DJI FPV"             },
     { "AVATA",       "DJI Avata"           },
     { "DJI AIR",     "DJI Air"             },   /* Air 2/2S/3              */
+    { "DJI NEO",     "DJI Neo"             },   /* Neo (2024, 5 GHz)        */
+    { "DJI-NEO",     "DJI Neo"             },   /* Neo AP mode SSID: DJI-NEO-XXXX */
     { "AGRAS",       "DJI Agras"           },   /* agricultural drones     */
     { "MATRICE",     "DJI Matrice"         },   /* enterprise series       */
 

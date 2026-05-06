@@ -462,7 +462,10 @@ static void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(wifi_promisc_cb));
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
 
-    ESP_LOGI(TAG, "WiFi promiscuous mode active (management frames)");
+    /* Enable dual-band scanning (ESP32-C5 supports 2.4 + 5 GHz) */
+    esp_wifi_set_band_mode(WIFI_BAND_MODE_AUTO);
+
+    ESP_LOGI(TAG, "WiFi promiscuous mode active (2.4 GHz + 5 GHz)");
 }
 
 /* Channel-hop task
@@ -472,9 +475,14 @@ static void wifi_init(void)
  */
 static void channel_task(void *arg)
 {
-    /* Interleaved scan order:  non-overlapping first (1,6,11) then fill in */
-    static const uint8_t CH24[] = {1, 6, 11, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10};
-    const int ch_count = (int)(sizeof(CH24) / sizeof(CH24[0]));
+    /* 2.4 GHz: interleaved non-overlapping first, then fill
+     * 5 GHz:  UNII-1 (36-48) and UNII-3 (149-165) — most drones use these;
+     *         DJI Neo, Air 3, Mini 4 Pro confirmed on ch 36 or 149            */
+    static const uint8_t SCAN_CHANNELS[] = {
+        /* 2.4 GHz */ 1, 6, 11, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10,
+        /* 5 GHz   */ 36, 40, 44, 48, 149, 153, 157, 161, 165
+    };
+    const int ch_count = (int)(sizeof(SCAN_CHANNELS) / sizeof(SCAN_CHANNELS[0]));
     int idx = 0;
 
     while (1) {
@@ -491,7 +499,7 @@ static void channel_task(void *arg)
             xSemaphoreGive(g_mutex);
         }
 
-        uint8_t next_ch = (lock_ch > 0) ? (uint8_t)lock_ch : CH24[idx++ % ch_count];
+        uint8_t next_ch = (lock_ch > 0) ? (uint8_t)lock_ch : SCAN_CHANNELS[idx++ % ch_count];
         esp_wifi_set_channel(next_ch, WIFI_SECOND_CHAN_NONE);
 
         vTaskDelay(pdMS_TO_TICKS(CHAN_DWELL_MS));
