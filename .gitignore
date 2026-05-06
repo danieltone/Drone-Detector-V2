@@ -1,0 +1,25 @@
+# ESP-IDF build output
+build/
+.cache/
+
+# Generated sdkconfig (built from sdkconfig.defaults — do not commit)
+sdkconfig
+
+# Managed components are pulled automatically via idf_component.yml
+managed_components/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

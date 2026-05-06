@@ -1,0 +1,11 @@
+## IDF Component Manager — managed dependencies for drone_detector/main
+## https://docs.espressif.com/projects/idf-component-manager/
+
+dependencies:
+  ## NeoPixel / WS2812B LED strip driver (RMT-based)
+  espressif/led_strip:
+    version: ">=2.5.0"
+
+  ## Ensure we use a version of IDF that supports ESP32-C5 fully
+  idf:
+    version: ">=5.3.0"

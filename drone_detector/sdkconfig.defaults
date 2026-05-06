@@ -1,0 +1,45 @@
+# sdkconfig.defaults  —  ESP32-C5 Drone Detector
+# These override ESP-IDF Kconfig defaults at build time.
+# Run "idf.py menuconfig" to explore all options interactively.
+
+# ── Target ────────────────────────────────────────────────────────────────
+# (set-target esp32c5 does this, but listed here for clarity)
+
+# ── Serial console ────────────────────────────────────────────────────────
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+
+# ── WiFi ──────────────────────────────────────────────────────────────────
+# Keep WiFi in RAM for promiscuous performance
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER=y
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=16
+
+# ── Bluetooth (NimBLE) ────────────────────────────────────────────────────
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+
+# Observer role only (passive scanning — no advertising/peripheral needed)
+CONFIG_BT_NIMBLE_ROLE_OBSERVER=y
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=n
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=n
+CONFIG_BT_NIMBLE_ROLE_CENTRAL=n
+
+# Extended advertising scan (BT5 — catches DJI and FAA Remote ID on extended ADV)
+CONFIG_BT_NIMBLE_EXT_ADV=y
+
+# ── WiFi + BLE coexistence ────────────────────────────────────────────────
+# Required for running WiFi promiscuous and BLE scan simultaneously
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y
+
+# ── FreeRTOS ──────────────────────────────────────────────────────────────
+CONFIG_FREERTOS_HZ=1000
+
+# ── Log level ─────────────────────────────────────────────────────────────
+# Set to INFO for normal operation; change to DEBUG for troubleshooting
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# ── Partition table ───────────────────────────────────────────────────────
+# "large" table gives ~3 MB factory partition (fits WiFi+BLE firmware)
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y

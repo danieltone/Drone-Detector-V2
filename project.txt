@@ -1,0 +1,190 @@
+================================================================================
+  DRONE DETECTOR + SIMULATOR — PROJECT OVERVIEW
+================================================================================
+
+WHAT THIS PROJECT IS
+--------------------
+This project is a two-board system built on ESP32 microcontrollers that can
+detect consumer drones flying nearby and simulate them for testing purposes.
+It was developed as an academic/research project at Purdue.
+
+
+--------------------------------------------------------------------------------
+BOARD 1 — THE DETECTOR (ESP32-C5)
+--------------------------------------------------------------------------------
+The detector is a passive listening device. It does not transmit anything.
+It sits in the background and watches the air around it for wireless signals
+that are known to come from consumer drones.
+
+It uses six different detection methods at the same time:
+
+  1. OUI Fingerprinting
+     Every Wi-Fi device has a MAC address. The first three bytes identify the
+     manufacturer (called an OUI). The detector knows the OUIs belonging to
+     drone makers like DJI, Parrot, and Autel. If it sees a beacon from one
+     of those manufacturers, it flags it.
+
+  2. SSID Pattern Matching
+     Drones broadcast a Wi-Fi network name (SSID) when they are powered on.
+     DJI drones use names like "DJI-Mini-4P-XXXX", Parrot uses "ANAFI-XXXXXX",
+     etc. The detector has a database of 59 known SSID patterns and flags any
+     match.
+
+  3. NAN Frame Detection
+     Newer DJI drones use a Wi-Fi protocol called NAN (Neighbor Awareness
+     Networking) to broadcast Remote ID information. These frames go to a
+     special destination address. The detector watches for those frames and
+     decodes the drone identity inside them.
+
+  4. Vendor Information Elements
+     Wi-Fi beacons can contain optional extra data called Vendor IEs. DJI
+     embeds ASTM F3411 Remote ID data inside these fields using their own
+     identifier. The detector recognizes that identifier and extracts the
+     drone's ID from it.
+
+  5. BLE Remote ID (FAA Compliance)
+     The FAA requires drones made after 2022 to broadcast Remote ID over
+     Bluetooth Low Energy. This data includes a UUID (0xFFFA) defined by
+     the ASTM F3411 standard. The detector passively scans BLE advertisements
+     and flags any device broadcasting on that UUID.
+
+  6. Signal Strength (RSSI) Tracking
+     When a drone is detected, the detector logs how strong the signal is.
+     A signal that gets stronger over time suggests the drone is approaching.
+     A signal that fades suggests it is leaving. This gives a rough sense of
+     movement without any GPS.
+
+When the detector finds something, it lights up a NeoPixel LED:
+  - Blue  = BLE Remote ID detected
+  - Green = Wi-Fi OUI or SSID match
+  - Yellow = NAN frame detected
+  - Red   = multiple strong signals (high confidence)
+  - White = vendor IE match
+
+It also prints detailed detection logs over its USB serial port so a connected
+laptop can see exactly what was found and when.
+
+Hardware: ESP32-C5-DevKitC-1 v1.2
+
+
+--------------------------------------------------------------------------------
+BOARD 2 — THE SIMULATOR (ESP32-C3 Super Mini)
+--------------------------------------------------------------------------------
+The simulator pretends to be a real consumer drone. It does not actually fly —
+it just broadcasts the same kinds of wireless signals that a real drone would
+send. This lets us test whether the detector is working correctly without
+needing a real drone in the room.
+
+The simulator cycles through eleven real-world drone models, spending about
+12 seconds pretending to be each one before switching to the next:
+
+  - DJI Mini 4 Pro
+  - DJI Air 3
+  - DJI Mavic 3 Classic
+  - DJI Mini 2 SE
+  - DJI Phantom 4 Pro
+  - DJI FPV
+  - Parrot ANAFI
+  - Parrot Bebop 2
+  - Autel EVO II Pro
+  - Autel EVO Nano+
+  - Skydio 2+
+  - DJI / Ryze Tello
+
+For each model it knows:
+  - The real manufacturer MAC address prefix (OUI)
+  - The real SSID naming format
+  - Which Wi-Fi channel that drone uses
+  - Which detection layers apply to that model
+  - A simulated signal strength that ramps up and then fades, like a drone
+    flying past
+
+While impersonating a drone it transmits:
+  - Wi-Fi beacons with the correct OUI and SSID
+  - NAN action frames (for DJI models that support it)
+  - Vendor Information Elements with ASTM Remote ID payloads
+  - BLE advertisements with UUID 0xFFFA and a Remote ID payload
+
+The onboard LED blinks at 2 Hz (twice per second) to show the simulator is
+running.
+
+Hardware: ESP32-C3 Super Mini
+
+
+--------------------------------------------------------------------------------
+HOW THEY WORK TOGETHER
+--------------------------------------------------------------------------------
+Power both boards. Put them within a few meters of each other.
+The simulator will start broadcasting fake drone signals.
+The detector will pick them up and log the detections over serial.
+
+This lets you verify every detection layer is working before deploying the
+detector in the field where real drones might be present.
+
+
+================================================================================
+  NEXT STEPS
+================================================================================
+
+The following are ideas for future improvement. None of these have been
+implemented yet.
+
+1. KEEP THE DRONE DATABASE CURRENT
+   The detector and simulator both rely on a hardcoded list of known drone
+   OUIs, SSID patterns, and Remote ID signatures. As new drone models are
+   released, this list becomes stale and newer drones will not be detected.
+   A future version should:
+     - Store the database in NVS (flash) rather than compiled-in firmware
+     - Pull updates from a remote server (e.g., over Wi-Fi or via USB)
+     - Version-stamp the database and alert the user when it is older than
+       30 days
+     - Provide a simple script or web UI to push a new drone list to the
+       device without reflashing firmware
+
+2. EXPAND THE DRONE MODEL ROSTER IN THE SIMULATOR
+   The ESP32-C3 has 4 MB of flash and the current firmware only uses ~880 KB.
+   There is plenty of room to add many more drone models. Good candidates:
+     - DJI Avata 2
+     - DJI Mini 3 / Mini 3 Pro
+     - DJI Air 2S
+     - Holy Stone, Potensic, and other mid-range consumer brands
+     - Fixed-wing drones (e.g., Parrot Disco, WingtraOne)
+     - Agricultural drones (DJI Agras series)
+   More models make the simulator a better stress-test for the detector.
+
+3. DETECTION CONFIDENCE SCORING
+   Right now a detection is binary — either seen or not. A future version
+   could assign a confidence score based on how many layers triggered, how
+   strong the signal is, and how long the signals have been present. This
+   would reduce false positives from non-drone devices that happen to share
+   an OUI or SSID pattern.
+
+4. LOGGING TO SD CARD OR FILE
+   The detector currently only outputs to the serial port. Adding an SD card
+   or logging to internal flash (SPIFFS/LittleFS) would let it operate
+   standalone — recording detections with timestamps for later review even
+   when no laptop is connected.
+
+5. TIMESTAMP AND GPS CORRELATION
+   Adding a GPS module or syncing time via NTP would let the detector attach
+   a timestamp and optional location to each detection event. This is useful
+   for field deployments where you want to know exactly when and where a
+   drone was seen.
+
+6. ALERT OUTPUT (BUZZER, RELAY, NETWORK)
+   Beyond the NeoPixel LED, the detector could trigger an external alarm,
+   close a relay, or send a network alert (MQTT, HTTP POST) when a drone is
+   detected. This would allow integration with security systems.
+
+7. WEB DASHBOARD
+   The ESP32 has built-in Wi-Fi. A small web server running on the detector
+   could serve a live dashboard showing recent detections, signal strengths,
+   and model identifications — accessible from any phone or laptop on the
+   same network.
+
+8. MULTI-BOARD MESH FOR DIRECTION FINDING
+   Deploying two or three detectors at known positions and comparing signal
+   strength readings (RSSI triangulation) could give a rough estimate of
+   where the drone is located, not just that one exists nearby.
+
+================================================================================
