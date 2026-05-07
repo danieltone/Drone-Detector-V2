@@ -6,7 +6,7 @@ WHAT THIS PROJECT IS
 --------------------
 This project is a two-board system built on ESP32 microcontrollers that can
 detect consumer drones flying nearby and simulate them for testing purposes.
-It was developed as an academic/research project at Purdue.
+It was developed as an academic/research project for Purdue Northwest.
 
 
 --------------------------------------------------------------------------------
